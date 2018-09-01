@@ -1,7 +1,6 @@
 package com.sopovs.moradanen.jmh.kotlin
 
 
-import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.newFixedThreadPoolContext
 import kotlinx.coroutines.experimental.runBlocking
@@ -10,7 +9,6 @@ import java.math.BigInteger
 import java.util.concurrent.Callable
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors.newFixedThreadPool
-import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit.MILLISECONDS
 import java.util.concurrent.TimeUnit.SECONDS
 
@@ -38,20 +36,20 @@ open class FactorialCoroutinesBenchmark {
     @Benchmark
     fun coroutinesFactorial(): BigInteger = runBlocking {
         val context = newFixedThreadPoolContext(4, "coroutines")
-        val steps: Array<Deferred<BigInteger>?> = arrayOfNulls(arg)
-        for (i in 1..arg) {
-            steps[i - 1] = async(context) {
+        val steps = Array(arg) {
+            async(context) {
                 var result = BigInteger.ONE
-                for (j in (i - 1) * 10 + 1..i * 10) {
-                    result *= j.toBigInteger()
+                for (i in it * 10 + 1..(it + 1) * 10) {
+                    result *= i.toBigInteger()
                 }
                 result
             }
-
         }
+
+
         var result = BigInteger.ONE
         for (i in 1..arg) {
-            result *= steps[i - 1]!!.await()
+            result *= steps[i - 1].await()
         }
         context.close()
         (context.executor as ExecutorService).awaitTermination(1, SECONDS)
@@ -61,12 +59,12 @@ open class FactorialCoroutinesBenchmark {
     @Benchmark
     fun threadPoolFactorial(): BigInteger {
         val pool = newFixedThreadPool(4)
-        val steps: Array<Future<BigInteger>?> = arrayOfNulls(arg)
-        for (i in 1..arg) {
-            steps[i - 1] = pool.submit(Callable<BigInteger> {
+
+        val steps = Array(arg) {
+            pool.submit(Callable<BigInteger> {
                 var result = BigInteger.ONE
-                for (j in (i - 1) * 10 + 1..i * 10) {
-                    result *= j.toBigInteger()
+                for (i in it * 10 + 1..(it + 1) * 10) {
+                    result *= i.toBigInteger()
                 }
                 result
             })
@@ -74,7 +72,7 @@ open class FactorialCoroutinesBenchmark {
 
         var result = BigInteger.ONE
         for (i in 1..arg) {
-            result *= steps[i - 1]!!.get()
+            result *= steps[i - 1].get()
         }
 
         pool.shutdown()
