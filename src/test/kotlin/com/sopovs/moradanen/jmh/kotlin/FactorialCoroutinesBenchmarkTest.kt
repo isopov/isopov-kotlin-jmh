@@ -16,6 +16,14 @@ class FactorialCoroutinesBenchmarkTest {
     }
 
     @Test
+    fun linearFactorialTest() {
+        assertEquals(
+                "265252859812191058636308480000000".toBigInteger(),
+                benchmark.linearFactorial()
+        )
+    }
+
+    @Test
     fun threadPoolFactorialTest() {
         assertEquals(
                 "265252859812191058636308480000000".toBigInteger(),

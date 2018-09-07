@@ -34,6 +34,15 @@ open class FactorialCoroutinesBenchmark {
     var arg = 0
 
     @Benchmark
+    fun linearFactorial(): BigInteger {
+        var result = BigInteger.ONE
+        for (i in 1..arg * 10) {
+            result *= i.toBigInteger()
+        }
+        return result
+    }
+
+    @Benchmark
     fun coroutinesFactorial(): BigInteger = runBlocking {
         val context = newFixedThreadPoolContext(4, "coroutines")
         val steps = Array(arg) {
