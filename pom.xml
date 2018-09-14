@@ -6,6 +6,15 @@
     <version>1.0</version>
     <packaging>jar</packaging>
 
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <jmh.version>1.21</jmh.version>
+        <javac.target>1.8</javac.target>
+        <kotlin.version>1.2.70</kotlin.version>
+        <coroutines.version>0.26.0</coroutines.version>
+        <jmh.generator>default</jmh.generator>
+        <uberjar.name>benchmarks</uberjar.name>
+    </properties>
 
     <dependencies>
         <dependency>
@@ -21,7 +30,7 @@
         <dependency>
             <groupId>org.jetbrains.kotlinx</groupId>
             <artifactId>kotlinx-coroutines-core</artifactId>
-            <version>0.25.0</version>
+            <version>${coroutines.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -40,15 +49,6 @@
             <version>4.12</version>
         </dependency>
     </dependencies>
-
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jmh.version>1.21</jmh.version>
-        <javac.target>1.8</javac.target>
-        <kotlin.version>1.2.61</kotlin.version>
-        <jmh.generator>default</jmh.generator>
-        <uberjar.name>benchmarks</uberjar.name>
-    </properties>
 
     <build>
         <plugins>
