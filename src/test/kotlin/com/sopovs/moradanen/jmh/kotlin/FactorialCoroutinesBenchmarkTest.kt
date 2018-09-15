@@ -9,24 +9,17 @@ import java.lang.management.ManagementFactory
 class FactorialCoroutinesBenchmarkTest {
 
     private val benchmark = FactorialCoroutinesBenchmark()
+    private val result = LinearFactorialBenchmark().linearFactorial()
 
     @Before
     fun setup() {
-        benchmark.arg = 3
-    }
-
-    @Test
-    fun linearFactorialTest() {
-        assertEquals(
-                "265252859812191058636308480000000".toBigInteger(),
-                benchmark.linearFactorial()
-        )
+        benchmark.threshold = 512
     }
 
     @Test
     fun threadPoolFactorialTest() {
         assertEquals(
-                "265252859812191058636308480000000".toBigInteger(),
+                result,
                 benchmark.threadPoolFactorial()
         )
     }
@@ -34,8 +27,16 @@ class FactorialCoroutinesBenchmarkTest {
     @Test
     fun coroutinesFactorialTest() {
         assertEquals(
-                "265252859812191058636308480000000".toBigInteger(),
+                result,
                 benchmark.coroutinesFactorial()
+        )
+    }
+
+    @Test
+    fun forkJoinFactorialTest() {
+        assertEquals(
+                result,
+                benchmark.forkJoinFactorial()
         )
     }
 
