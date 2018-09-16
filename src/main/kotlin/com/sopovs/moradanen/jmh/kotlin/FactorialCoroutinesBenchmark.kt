@@ -1,6 +1,7 @@
 package com.sopovs.moradanen.jmh.kotlin
 
 
+import kotlinx.coroutines.experimental.Deferred
 import kotlinx.coroutines.experimental.async
 import kotlinx.coroutines.experimental.newFixedThreadPoolContext
 import kotlinx.coroutines.experimental.runBlocking
@@ -13,6 +14,7 @@ import java.util.concurrent.ForkJoinPool
 import java.util.concurrent.RecursiveTask
 import java.util.concurrent.TimeUnit.MILLISECONDS
 import java.util.concurrent.TimeUnit.SECONDS
+import kotlin.coroutines.experimental.CoroutineContext
 
 
 //Benchmark                                         (threshold)  Mode  Cnt    Score   Error  Units
@@ -39,8 +41,7 @@ import java.util.concurrent.TimeUnit.SECONDS
 //FactorialCoroutinesBenchmark.threadPoolFactorial         1024  avgt   15   63.150 ± 0.376  ms/op
 //LinearFactorialBenchmark.linearFactorial                  N/A  avgt   15  226.578 ± 1.157  ms/op
 
-
-const val FACTORIAL = 32768;
+const val FACTORIAL = "100000"
 
 @BenchmarkMode(Mode.AverageTime)
 @Fork(3)
@@ -50,18 +51,21 @@ const val FACTORIAL = 32768;
 @State(Scope.Benchmark)
 open class FactorialCoroutinesBenchmark {
 
+    @Param(FACTORIAL)
+    var factorial = 0
 
-    @Param("16", "32", "64", "128", "256", "512", "1024")
+    //    @Param("10", "20", "30", "40", "50", "60", "80", "100", "120", "150", "200")
+    @Param("50")
     var threshold = 0
 
     @Benchmark
     fun coroutinesFactorial(): BigInteger = runBlocking {
         val context = newFixedThreadPoolContext(Runtime.getRuntime().availableProcessors(), "coroutines")
 
-        val steps = Array(FACTORIAL / threshold) {
+        val steps = Array(factorial / threshold) {
             async(context) {
                 var result = BigInteger.ONE
-                for (i in (it * threshold + 1) .. (it + 1) * threshold) {
+                for (i in (it * threshold + 1)..(it + 1) * threshold) {
                     result *= i.toBigInteger()
                 }
                 result
@@ -70,7 +74,7 @@ open class FactorialCoroutinesBenchmark {
 
 
         var result = BigInteger.ONE
-        for (i in 1..(FACTORIAL / threshold)) {
+        for (i in 1..(factorial / threshold)) {
             result *= steps[i - 1].await()
         }
         context.close()
@@ -79,13 +83,43 @@ open class FactorialCoroutinesBenchmark {
     }
 
     @Benchmark
+    fun coroutinesRecursiveFactorial(): BigInteger = runBlocking {
+        val context = newFixedThreadPoolContext(Runtime.getRuntime().availableProcessors(), "coroutines")
+        val result = async(context) {
+            coroutinesRecursiveStep(context, 1, factorial + 1, threshold)
+        }.await()
+        context.close()
+        (context.executor as ExecutorService).awaitTermination(1, SECONDS)
+        result
+    }
+
+    private suspend fun coroutinesRecursiveStep(context: CoroutineContext, lo: Int, hi: Int, threshold: Int): BigInteger {
+        if (hi - lo <= threshold) {
+            var result = lo.toBigInteger()
+            for (i in lo + 1 until hi) {
+                result *= i.toBigInteger()
+            }
+            return result
+        } else {
+            val mid = (lo + hi).ushr(1)
+
+
+            val first = async(context) { coroutinesRecursiveStep(context, lo, mid, threshold) }
+            val second = async(context) { coroutinesRecursiveStep(context, mid, hi, threshold) }
+
+            return first.await() * second.await()
+        }
+    }
+
+
+    @Benchmark
     fun threadPoolFactorial(): BigInteger {
         val pool = newFixedThreadPool(Runtime.getRuntime().availableProcessors())
 
-        val steps = Array(FACTORIAL / threshold) {
+        val steps = Array(factorial / threshold) {
             pool.submit(Callable<BigInteger> {
                 var result = BigInteger.ONE
-                for (i in (it * threshold + 1) .. (it + 1) * threshold) {
+                for (i in (it * threshold + 1)..(it + 1) * threshold) {
                     result *= i.toBigInteger()
                 }
                 result
@@ -93,7 +127,7 @@ open class FactorialCoroutinesBenchmark {
         }
 
         var result = BigInteger.ONE
-        for (i in 1..(FACTORIAL / threshold)) {
+        for (i in 1..(factorial / threshold)) {
             result *= steps[i - 1].get()
         }
 
@@ -105,7 +139,7 @@ open class FactorialCoroutinesBenchmark {
     @Benchmark
     fun forkJoinFactorial(): BigInteger {
         val forkJoinPool = ForkJoinPool(Runtime.getRuntime().availableProcessors())
-        val future = forkJoinPool.submit(FactorialRecursiveTask(1, FACTORIAL + 1, threshold))
+        val future = forkJoinPool.submit(FactorialRecursiveTask(1, factorial + 1, threshold))
         val result = future.get()
         forkJoinPool.shutdown()
         forkJoinPool.awaitTermination(1, SECONDS)
@@ -116,8 +150,8 @@ open class FactorialCoroutinesBenchmark {
     internal inner class FactorialRecursiveTask(private val lo: Int, private val hi: Int, private val threshold: Int) : RecursiveTask<BigInteger>() {
 
         override fun compute(): BigInteger {
-            if (hi - lo < threshold) {
-                var result = BigInteger.valueOf(lo.toLong())
+            if (hi - lo <= threshold) {
+                var result = lo.toBigInteger()
                 for (i in lo + 1 until hi) {
                     result *= i.toBigInteger()
                 }
@@ -133,6 +167,41 @@ open class FactorialCoroutinesBenchmark {
         }
     }
 
+    @Benchmark
+    fun linearThresholdFactorial(): BigInteger {
+        var result = BigInteger.ONE
+        for (i in 1..factorial step threshold) {
+            result *= linearThresholdFactorialStep(i, i + threshold)
+        }
+        return result;
+    }
+
+
+    private fun linearThresholdFactorialStep(lo: Int, hi: Int): BigInteger {
+        var result = lo.toBigInteger()
+        for (i in lo + 1 until hi) {
+            result *= i.toBigInteger()
+        }
+        return result
+    }
+
+
+    @Benchmark
+    fun linearRecursiveFactorial(): BigInteger = recursiveFactorial(1, factorial + 1, threshold)
+
+    private fun recursiveFactorial(lo: Int, hi: Int, threshold: Int): BigInteger {
+        if (hi - lo <= threshold) {
+            var result = lo.toBigInteger()
+            for (i in lo + 1 until hi) {
+                result *= i.toBigInteger()
+            }
+            return result
+        } else {
+            val mid = (lo + hi).ushr(1)
+
+            return recursiveFactorial(lo, mid, threshold) * recursiveFactorial(mid, hi, threshold)
+        }
+    }
 
 }
 
@@ -144,10 +213,13 @@ open class FactorialCoroutinesBenchmark {
 @State(Scope.Benchmark)
 open class LinearFactorialBenchmark {
 
+    @Param(FACTORIAL)
+    var factorial = 0
+
     @Benchmark
     fun linearFactorial(): BigInteger {
         var result = BigInteger.ONE
-        for (i in 1..FACTORIAL) {
+        for (i in 1..factorial) {
             result *= i.toBigInteger()
         }
         return result

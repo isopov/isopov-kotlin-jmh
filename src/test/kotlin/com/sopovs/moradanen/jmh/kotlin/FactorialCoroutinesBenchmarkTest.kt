@@ -9,17 +9,54 @@ import java.lang.management.ManagementFactory
 class FactorialCoroutinesBenchmarkTest {
 
     private val benchmark = FactorialCoroutinesBenchmark()
-    private val result = LinearFactorialBenchmark().linearFactorial()
 
     @Before
     fun setup() {
-        benchmark.threshold = 512
+        benchmark.factorial = 64
+        benchmark.threshold = 2
+    }
+
+    @Test
+    fun linearFactorialTest() {
+        val linearBenchmark = LinearFactorialBenchmark()
+        linearBenchmark.factorial = 64
+
+        assertEquals(
+                "126886932185884164103433389335161480802865516174545192198801894375214704230400000000000000".toBigInteger(),
+                linearBenchmark.linearFactorial()
+        )
+    }
+
+    @Test
+    fun linearRecursiveFactorialTest() {
+        assertEquals(
+                "126886932185884164103433389335161480802865516174545192198801894375214704230400000000000000".toBigInteger(),
+                benchmark.linearRecursiveFactorial()
+        )
+    }
+
+
+    @Test
+    fun coroutinesRecursiveFactorialTest() {
+        assertEquals(
+                "126886932185884164103433389335161480802865516174545192198801894375214704230400000000000000".toBigInteger(),
+                benchmark.coroutinesRecursiveFactorial()
+        )
+    }
+
+
+    @Test
+    fun linearThresholdFactorialTest() {
+        assertEquals(
+                "126886932185884164103433389335161480802865516174545192198801894375214704230400000000000000".toBigInteger(),
+                benchmark.linearThresholdFactorial()
+        )
     }
 
     @Test
     fun threadPoolFactorialTest() {
         assertEquals(
-                result,
+                "126886932185884164103433389335161480802865516174545192198801894375214704230400000000000000".toBigInteger(),
                 benchmark.threadPoolFactorial()
         )
     }
@@ -27,7 +64,7 @@ class FactorialCoroutinesBenchmarkTest {
     @Test
     fun coroutinesFactorialTest() {
         assertEquals(
-                result,
+                "126886932185884164103433389335161480802865516174545192198801894375214704230400000000000000".toBigInteger(),
                 benchmark.coroutinesFactorial()
         )
     }
@@ -35,7 +72,7 @@ class FactorialCoroutinesBenchmarkTest {
     @Test
     fun forkJoinFactorialTest() {
         assertEquals(
-                result,
+                "126886932185884164103433389335161480802865516174545192198801894375214704230400000000000000".toBigInteger(),
                 benchmark.forkJoinFactorial()
         )
     }
